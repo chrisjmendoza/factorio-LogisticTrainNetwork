@@ -6,9 +6,9 @@
   "contact": "https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues",
   "homepage": "https://github.com/hgschmie/factorio-LogisticTrainNetwork",
   "description": "Fully automated train logistics. Stops request and provide items or fluids through circuit signals, LTN picks a free train from a depot and writes its schedule. Includes a quick start, signal tooltips and a /ltn-diagnose command.",
-  "factorio_version": "2.1",
+  "factorio_version": "2.0",
   "dependencies": [
-    "base >= 2.1.7",
+    "base >= 2.0.26",
     "(?)cargo-ships"
   ],
   "package": {
