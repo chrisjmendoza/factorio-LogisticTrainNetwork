@@ -14,6 +14,9 @@ local RailCache = require('script.cache')
 -- how often expired route cache entries are swept (in ticks)
 local CACHE_SWEEP_INTERVAL = 3600
 
+-- how often the 'dispatcher disabled' warning is repeated (in ticks)
+local DISABLED_WARNING_INTERVAL = 3600
+
 -- update dispatcher Deliveries.force when forces are removed/merged
 script.on_event(defines.events.on_forces_merging, function(event)
     local dispatcher = tools.getDispatcher()
@@ -151,7 +154,7 @@ local function DispatcherUpdateDeliveries(event)
 
             tools.printmsg(1, function()
                 return { 'ltn-message.delivery-removed-timeout', tools.richTextForStop(from_entity) or delivery.from,
-                    tools.richTextForStop(to_entity) or delivery.to, event.tick - delivery.started }
+                    tools.richTextForStop(to_entity) or delivery.to, string.format('%.1f', (event.tick - delivery.started) / 3600) }
             end, delivery.force)
 
             tools.log(6, 'OnTick', 'Delivery from %s to %s removed. Timed out after %d/%d ticks.', function()
@@ -254,9 +257,13 @@ local function DispatcherDispatchTrains(event)
             until request_count == 0 or not request_index
         end
     else
-        tools.printmsg(1, function()
-            return { 'ltn-message.warning-dispatcher-disabled' }
-        end)
+        -- repeat the warning once a minute instead of once per dispatcher cycle
+        if (storage.last_dispatcher_disabled_warning or 0) + DISABLED_WARNING_INTERVAL <= event.tick then
+            storage.last_dispatcher_disabled_warning = event.tick
+            tools.printmsg(1, function()
+                return { 'ltn-message.warning-dispatcher-disabled' }
+            end)
+        end
 
         tools.log(6, 'OnTick', 'Dispatcher disabled.')
 

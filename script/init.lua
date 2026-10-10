@@ -304,7 +304,7 @@ local function checkStopNetworkId()
 
     if #stops > 0 then
         tools.printmsg(0, function()
-            return string.format('[LTN] Found stations without a network id set: %s', table.concat(stops, ', '))
+            return { 'ltn-message.stations-without-network-id', table.concat(stops, ', ') }
         end)
     end
 

@@ -6,8 +6,11 @@
 * Yellow - Pending delivery operation. Station is either requester or provider.
 * Blue - Train is parked at the stop.
 * White - Station is not initialized.
-* Red - Station is in error state.
+* Red - Station is in error state (wired incorrectly or disabled by a circuit condition). LTN also prints a message and raises an alert.
 * Cyan - Station is a refuel station.
+* Grey - Station is a refuel station but receives no fuel item signal.
+
+If a stop does not behave as expected, hover it and run `/ltn-diagnose` in the console. It prints the stop's role, network, every item signal it sees (and whether it is below a threshold), and whether a depot with a free train exists in its network. See [CONSOLE.md](CONSOLE.md).
 
 All station colors can be read on the circuit network by connecting a green wire to the station lamp:
 
@@ -18,6 +21,7 @@ All station colors can be read on the circuit network by connecting a green wire
 * Virtual Signal "red" - 1 - "short circuit", input (lamp), output (combinator) or the train stop connector are connected to each other
 * Virtual Signal "red" - 2 - "disabled". The train stop has been disabled (e.g. through a circuit condition).
 * Virtual Signal "cyan" - Train stop is a refuel station.
+* Virtual Signal "grey" - 3 - Train stop is a refuel station without fuel item signals.
 
 When using a single combinator for multiple stations (e.g. for a depot), the combinator should connect to the train stop inputs (lamps) using the *red* wire connection. This ensures that the different station lamps function correctly. When using a green wire, the virtual signals will be sent from one stop to the other and the lamps will not show the correct state. The stations will continue to function correctly, only the lamp color will be incorrect.
 

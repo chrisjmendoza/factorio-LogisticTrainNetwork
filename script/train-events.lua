@@ -7,6 +7,9 @@
 local tools = require('script.tools')
 local schedule = require('script.schedule')
 
+-- how often (in ticks) the 'train without delivery' hint may repeat for one stop
+local NO_DELIVERY_HINT_INTERVAL = 18000
+
 -- update stop output when train enters stop
 ---@param train LuaTrain
 function TrainArrives(train)
@@ -200,6 +203,14 @@ function TrainArrives(train)
                         schedule:scheduleDynamicRefueling(train, fuel_station)
                     end
                 end
+            elseif not train.manual_mode and not stop.no_warnings
+                and (stop.last_no_delivery_hint or 0) + NO_DELIVERY_HINT_INTERVAL <= game.tick then
+                -- an automatic train at a provider/requester without a delivery is almost always a train
+                -- that was meant to be parked at a depot (missing depot signal or wrong schedule)
+                stop.last_no_delivery_hint = game.tick
+                tools.printmsg(2, function()
+                    return { 'ltn-message.train-at-stop-without-delivery', tools.richTextForTrain(train, trainName), tools.richTextForStop(stop.entity) or stop_name }
+                end, trainForce)
             end
 
 

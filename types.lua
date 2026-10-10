@@ -11,6 +11,8 @@
 ---@field tick_stop_index       integer?
 ---@field tick_request_index    integer?
 ---@field last_cache_sweep      uint64?    Tick of the last route cache sweep
+---@field last_empty_depot_warning uint64? Dispatcher cycle in which the 'no free train' message was last printed
+---@field last_dispatcher_disabled_warning uint64? Tick of the last 'dispatcher disabled' warning
 ---@field Dispatcher            ltn.Dispatcher
 ---@field LogisticTrainStops    table<integer, ltn.TrainStop>
 ---@field ConnectedSurfaces     table<ltn.EntityPairKey, table<ltn.EntityPairKey, ltn.SurfaceConnection>>
@@ -101,6 +103,8 @@ storage = {}
 ---@field parked_train_id             integer?   The train id of the currently parked train
 ---@field parked_train_faces_stop     boolean?   True if the train faces the stop, false otherwise
 ---@field fuel_signals                (CircuitCondition[])? Fuel Signals for a fuel station, used to create refuel interrupt condition
+---@field last_threshold_hint         uint64?    Tick of the last 'request below threshold' hint for this stop
+---@field last_no_delivery_hint       uint64?    Tick of the last 'train without delivery' hint for this stop
 
 --- LTN Train information
 ---@class ltn.Train

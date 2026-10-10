@@ -1,7 +1,34 @@
 ---------------------------------------------------------------------------------------------------
 Version: 3.3.1
 Date: ????
+  Features:
+    - New console command '/ltn-diagnose': hover a stop (or pass its name) to see its role, network,
+      every signal it sees and whether it is below a threshold, and whether a depot with a free
+      train exists in its network. Without a target it prints a network summary.
+    - Every LTN signal has a tooltip in the signal picker explaining what it does.
+    - A quick start, a glossary and a troubleshooting table were added to the README.
   Changes:
+    - Settings are reordered: default network ID, thresholds and message settings come first,
+      performance and debug settings last and are prefixed. Tooltips were rewritten in plain
+      language and the wrong 'True (default)' text for 'Requesters ignore stopped trains' fixed.
+    - Default network ID is 1 for new maps (upstream: 0), so a single-network game works without
+      sending any network signal. Set it to 0 if every stop sends its own network ID.
+    - Clickable map locations in messages are on by default.
+    - Signals renamed: 'Encoded Network ID' is now 'LTN Network ID', 'Limit Trains' is
+      'LTN Max Trains to this Stop', the output signals are 'Train layout: ... (output)'.
+    - Messages say what to do: a requester in network 0 gets its own message, 'no provider'
+      names the threshold, 'no train' describes the length limits in words instead of
+      'between 0 and 0', the delivery timeout is shown in minutes, cargo alerts explain the
+      likely cause, and the 'no free train' message names the requester and is printed once
+      per dispatcher cycle instead of once per request.
+    - A requester whose network has no depot at all gets a dedicated message.
+    - New hints: a stop that is wired incorrectly or disabled prints a message and raises an
+      alert; an idle stop with a request below the threshold is told so (once per 5 minutes);
+      an automatic train arriving at a provider/requester without a delivery is told to use a
+      depot (once per 5 minutes per stop). The 'LTN Disable Warning Messages' signal silences
+      the hints for a stop.
+    - The 'dispatcher disabled' warning repeats once a minute instead of every cycle.
+    - The hex network mask is only shown when more than one network bit is set.
     - Raise the 'on_delivery_created' API event when a delivery is scheduled. The event id was
       exposed through the remote interface but never raised.
     - Add train layout signals for infinity cargo wagons (editor / sandbox maps) instead of

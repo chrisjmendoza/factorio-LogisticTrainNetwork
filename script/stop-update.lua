@@ -63,6 +63,9 @@ local function detectShortCircuit(checkStop)
     return false
 end
 
+-- how often (in ticks) the 'request below threshold' hint may repeat for one stop
+local THRESHOLD_HINT_INTERVAL = 18000
+
 ---@type table<string, LuaItemPrototype>?
 local fuel_prototypes_cache
 
@@ -136,6 +139,14 @@ function UpdateStop(stopID, stop)
 
     -- skip short circuited stops
     if detectShortCircuit(stop) then
+        if stop.error_code ~= 1 then
+            -- report the transition into the error state once, the alert stays while it persists
+            tools.printmsg(1, function()
+                return { 'ltn-message.stop-short-circuit', tools.richTextForStop(stop.entity) or stop.entity.backer_name }
+            end, stop.entity.force)
+        end
+        create_alert(stop.entity, 'depot-warning', { 'ltn-message.stop-short-circuit', stop.entity.backer_name } --[[@as LocalisedString]], stop.entity.force)
+
         stop.error_code = 1
         tools.reduceAvailableCapacity(stop.parked_train_id)
 
@@ -153,6 +164,13 @@ function UpdateStop(stopID, stop)
 
     -- skip deactivated stops
     if disabled then
+        if stop.error_code ~= 1 then
+            tools.printmsg(1, function()
+                return { 'ltn-message.stop-disabled', tools.richTextForStop(stop.entity) or stop.entity.backer_name }
+            end, stop.entity.force)
+        end
+        create_alert(stop.entity, 'depot-warning', { 'ltn-message.stop-disabled', stop.entity.backer_name } --[[@as LocalisedString]], stop.entity.force)
+
         stop.error_code = 1
         tools.reduceAvailableCapacity(stop.parked_train_id)
 
@@ -342,6 +360,12 @@ function UpdateStop(stopID, stop)
         -- check if the name is unique
         tools.reduceAvailableCapacity(stop.parked_train_id)
 
+        -- a stop that neither provides nor requests anything but has a negative signal below the
+        -- request threshold is the classic 'why is nothing happening' situation for new players
+        local stop_is_idle = true
+        ---@type { item: ltn.ItemIdentifier, count: integer, threshold: integer }?
+        local below_threshold_hint
+
         for signal, count in pairs(signals_filtered) do
             local signal_type = signal.type or 'item'
             local signal_name = signal.name
@@ -438,6 +462,7 @@ function UpdateStop(stopID, stop)
             -- Requests are handled when above Requester Threshold
             if (useProvideStackThreshold and stack_count >= ltn_state.providing_threshold_stacks) or
                 (not useProvideStackThreshold and count >= ltn_state.providing_threshold) then
+                stop_is_idle = false
                 dispatcher.Provided[item] = dispatcher.Provided[item] or {}
                 dispatcher.Provided[item][stopID] = count
                 dispatcher.Provided_by_Stop[stopID] = dispatcher.Provided_by_Stop[stopID] or {}
@@ -452,6 +477,7 @@ function UpdateStop(stopID, stop)
                     end)
             elseif (useRequestStackThreshold and stack_count * -1 >= ltn_state.requesting_threshold_stacks) or
                 (not useRequestStackThreshold and count * -1 >= ltn_state.requesting_threshold) then
+                stop_is_idle = false
                 count = count * -1
                 local ageIndex = item .. ',' .. stopID
                 dispatcher.RequestAge[ageIndex] = dispatcher.RequestAge[ageIndex] or game.tick
@@ -473,8 +499,21 @@ function UpdateStop(stopID, stop)
                             ltn_state.requesting_threshold_stacks, ltn_state.requester_priority, ltn_state.min_carriages, ltn_state.max_carriages,
                             dispatcher.RequestAge[ageIndex], game.tick, trainsEnRoute
                     end)
+            elseif count < 0 and not useRequestStackThreshold and not below_threshold_hint then
+                below_threshold_hint = { item = item, count = -count, threshold = ltn_state.requesting_threshold }
             end
         end -- for circuitValues
+
+        if stop_is_idle and below_threshold_hint and #stop.active_deliveries == 0 and not ltn_state.no_warnings
+            and (stop.last_threshold_hint or 0) + THRESHOLD_HINT_INTERVAL <= game.tick then
+            stop.last_threshold_hint = game.tick
+            tools.printmsg(2, function()
+                local item_info = tools.parseItemIdentifier(below_threshold_hint.item)
+                return { 'ltn-message.request-below-threshold', tools.richTextForStop(stop.entity) or stop.entity.backer_name,
+                    tostring(below_threshold_hint.count), item_info and tools.prettyPrint(item_info) or below_threshold_hint.item,
+                    tostring(below_threshold_hint.threshold) }
+            end, stop.entity.force)
+        end
 
         stop.providing_threshold = ltn_state.providing_threshold
         stop.providing_threshold_stacks = ltn_state.providing_threshold_stacks

@@ -5,7 +5,7 @@
   "author": "Optera & hgschmie",
   "contact": "https://github.com/hgschmie/factorio-LogisticTrainNetwork/issues",
   "homepage": "https://github.com/hgschmie/factorio-LogisticTrainNetwork",
-  "description": "Adds new train stops forming a highly configurable, fully automated logistic network.",
+  "description": "Fully automated train logistics. Stops request and provide items or fluids through circuit signals, LTN picks a free train from a depot and writes its schedule. Includes a quick start, signal tooltips and a /ltn-diagnose command.",
   "factorio_version": "2.1",
   "dependencies": [
     "base >= 2.1.7",

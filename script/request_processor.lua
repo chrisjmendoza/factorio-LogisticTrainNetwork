@@ -804,11 +804,21 @@ function RequestProcessor.processRequest(reqIndex, request)
         or (dispatcher.availableTrains_total_fluid_capacity or 0)
 
     if capacity == 0 then
-        create_alert(request_stop.entity, 'depot-empty', { primary_is_item and 'ltn-message.empty-depot-item' or 'ltn-message.empty-depot-fluid' }, force)
+        -- tell the player whether there is no depot at all in this network or just no free train
+        local depots_in_network = tools.findMatchingStops(tools.getDepots(), request_network_id)
+        local msg = (table_size(depots_in_network) == 0) and 'ltn-message.no-depot-in-network'
+            or (primary_is_item and 'ltn-message.empty-depot-item' or 'ltn-message.empty-depot-fluid')
 
-        tools.printmsg(1, function()
-            return { primary_is_item and 'ltn-message.empty-depot-item' or 'ltn-message.empty-depot-fluid' }
-        end, force)
+        ---@type LocalisedString
+        local msg_text = { msg, to_gps, tools.prettyPrint(item_info), { 'ltn-message.network', to_network_id_count, to_network_ids } }
+
+        create_alert(request_stop.entity, 'depot-empty', msg_text, force)
+
+        -- every open request hits this branch while no train is free; print the message once per dispatcher cycle
+        if not request_stop.no_warnings and storage.last_empty_depot_warning ~= storage.tick_interval_start then
+            storage.last_empty_depot_warning = storage.tick_interval_start
+            tools.printmsg(1, function() return msg_text end, force)
+        end
 
         -- no train available, bail out.
         ---@type ltn.EventData.no_train_found_item
@@ -844,11 +854,18 @@ function RequestProcessor.processRequest(reqIndex, request)
             end
 
             local total_count = provider_metrics:get('total_count')
-            local msg = (total_count == 0) and 'ltn-message.no-provider-found' or 'ltn-message.no-provider-available'
             local metrics_result = provider_metrics:summarize({ '', }, 'PROCESS_REQUEST_METRICS')
 
             tools.printmsg(1, function()
-                return { msg, to_gps, tools.prettyPrint(item_info), { 'ltn-message.network', to_network_id_count, to_network_ids }, metrics_result, total_count } --[[@as LocalisedString ]]
+                local network_str = { 'ltn-message.network', to_network_id_count, to_network_ids }
+                if request_network_id == 0 then
+                    -- the most common beginner problem: the stop is in no network at all
+                    return { 'ltn-message.no-network-id', to_gps, tools.prettyPrint(item_info) } --[[@as LocalisedString ]]
+                elseif total_count == 0 then
+                    return { 'ltn-message.no-provider-found', to_gps, tools.prettyPrint(item_info), network_str, tostring(LtnSettings.min_provided) } --[[@as LocalisedString ]]
+                else
+                    return { 'ltn-message.no-provider-available', to_gps, tools.prettyPrint(item_info), network_str, metrics_result, tostring(total_count) } --[[@as LocalisedString ]]
+                end
             end, force)
         end
 
@@ -895,15 +912,28 @@ function RequestProcessor.processRequest(reqIndex, request)
 
     local free_train = select_train(selected_trains, provider_stop.entity.surface_index, stacks)
     if not free_train then
+        -- describe the length limits in words instead of 'between 0 and 0'
+        ---@type LocalisedString
+        local length_str
+        if min_carriages > 0 and max_carriages > 0 then
+            length_str = { 'ltn-message.train-length-range', tostring(min_carriages), tostring(max_carriages) }
+        elseif min_carriages > 0 then
+            length_str = { 'ltn-message.train-length-min', tostring(min_carriages) }
+        elseif max_carriages > 0 then
+            length_str = { 'ltn-message.train-length-max', tostring(max_carriages) }
+        else
+            length_str = { 'ltn-message.train-length-any' }
+        end
+
         create_alert(request_stop.entity,
             'depot-empty', {
                 'ltn-message.no-train-found',
-                from, to, matched_network_id_str, tostring(min_carriages), tostring(max_carriages)
+                from, to, matched_network_id_str, length_str
             }  --[[@as LocalisedString]],
             force)
 
         tools.printmsg(1, function()
-            return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_str, tostring(min_carriages), tostring(max_carriages) }  --[[@as LocalisedString]]
+            return { 'ltn-message.no-train-found', from_gps, to_gps, matched_network_id_str, length_str }  --[[@as LocalisedString]]
         end, force)
 
         ---@type ltn.EventData.no_train_found_shipment

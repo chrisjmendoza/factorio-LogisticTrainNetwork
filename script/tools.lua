@@ -373,7 +373,11 @@ function Tools.networkList(network_id)
     end
     add_result(result, left, 32)
 
-    return table.concat(result, ', ') .. (' (0x%x)'):format(network_id), count
+    local list = table.concat(result, ', ')
+    -- the hex mask only adds information when more than one network bit is set
+    if count > 1 then list = list .. (' (0x%x)'):format(network_id) end
+
+    return list, count
 end
 
 -----------------------------------------------------------------------

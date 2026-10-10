@@ -2,6 +2,8 @@
 
 Most LTN settings are per-map and can be changed while the game is running. Exceptions are marked below.
 
+In the mod settings GUI the settings are grouped: the essentials first (default network id, thresholds, messages), then train and stop behaviour, refuelling, advanced options, and finally performance and debugging knobs.
+
 ## Dispatcher Enabled (ltn-dispatcher-enabled) - boolean, default is true
 
 If `true`, the dispatcher will create new deliveries. Set to `false` if you want LTN to pause scheduling new deliveries.
@@ -26,7 +28,7 @@ If the Update frequency is set to a value > `1`, this value is forced to be `1`.
 
 Controls how long LTN will store computed routes which in turn control what train is selected for a delivery. The default is 10 minutes. For very large maps that don't update too much, longer lifetimes will reduce the number of route computing requests, which helps with FPS/UPS.
 
-## Message Level (ltn-interface-console-level) - select, 1-4, default is 2
+## Message Level (ltn-interface-console-level) - select, 0-3, default is 2
 
 Selects the level of messages sent to the game console:
 
@@ -43,9 +45,9 @@ If `false`, those messages are silenced for this player only. Useful in multipla
 
 This setting is per-player. The map-wide Message Level still controls which messages are generated for players who keep console messages enabled.
 
-## GPS Tags (ltn-interface-message-gps) - boolean, default is false
+## Clickable map locations in messages (ltn-interface-message-gps) - boolean, default is true
 
-Console messages contain [Factorio rich text](https://wiki.factorio.com/rich_text) GPS tags which can be clicked.
+Console messages contain [Factorio rich text](https://wiki.factorio.com/rich_text) GPS tags which can be clicked to jump to the stop. Turned on by default so that every LTN message leads to the stop it talks about.
 
 ## Send Factorio Alerts (ltn-interface-factorio-alerts) - boolean, default is true
 
@@ -53,7 +55,7 @@ If `true`, any alert message will be registered as a [Factorio Alert](https://wi
 
 This setting is per-player, so each player can choose whether to receive alerts or not.
 
-## Enable debug log file (ltn-interface-debug-logfile) - number 0 - 10, default is 0
+## Enable debug log file (ltn-interface-debug-logfile) - number 0 - 9, default is 0
 
 If larger than zero, write detailed information into the factorio log file. This should only be turned on for debugging purposes. The higher the number, the more log information is written. The majority of the existing log statements uses '5' as the priority.
 
@@ -112,13 +114,13 @@ When entering a depot, remove leftover fluid from a train. The fluid is discarde
 Using `0` disables cleaning the fluid.
 Using `-1` removed all fluid from the train.
 
-## [CHANGED in 2.2.0] Default network ID (ltn-stop-default-network) - integer, default is 0
+## [CHANGED in 2.2.0 and in this fork] Default network ID (ltn-stop-default-network) - integer, default is 1
 
 LTN use a bit mask to define what network a station belongs to. There can be up to 32 networks and each station can belong to one or more networks if the corresponding bit is set.
 
-The default value is `0`, so any station that has no network set explicitly does *not* belong to any network.
+The default value is `1`, so any station that has no network set explicitly belongs to network 1. This makes a single-network game work without any network signals.
 
-This is a change from pre-2.2.0 releases where the default was `-1` which makes such stations belong to *all* networks.
+If every one of your stations sends its own network id (for example through LTN combinators), set this to `0` so that a station with a missing or switched-off signal does *not* belong to any network instead of silently joining network 1. Pre-2.2.0 releases used `-1` which makes such stations belong to *all* networks; upstream LTN uses `0`.
 
 ## Provider stop signals contain existing cargo (ltn-provider-show-existing-cargo) - boolean, default is true
 
@@ -126,7 +128,7 @@ When a train arrives at the provider station, it is possible to "pick up" additi
 
 Setting this signal to `false` makes LTN to report only the requested cargo on its output signals.
 
-## [NEW in 2.2.0, default changed in 2.4.0] Requesters ignore stopped trains (ltn-provider-ignore-stopped-train) - boolean, default is false
+## [NEW in 2.2.0, default changed in 2.4.0] Requesters ignore stopped trains (ltn-provider-ignore-stopped-train) - boolean, default is false (the in-game tooltip used to claim the default was true)
 
 Pre-2.2.0 release, when requesting multiple deliveries to the same station of the same item or fluid, LTN would consider a parked train that is currently unloading and subtract that cargo from the next delivery. This can lead to a delivery not using a full train but just a fraction.
 
